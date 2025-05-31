@@ -2,8 +2,6 @@ package com.meem.controller;
 
 import com.meem.model.dto.ImageGroupDto;
 import com.meem.model.dto.ImageMetadataDto;
-import com.meem.model.entity.ImageMetadata;
-import com.meem.model.enums.ImageType;
 import com.meem.service.ImageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

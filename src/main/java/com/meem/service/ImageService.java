@@ -2,7 +2,6 @@ package com.meem.service;
 
 import com.meem.model.dto.ImageMetadataDto;
 import com.meem.model.entity.ImageMetadata;
-import com.meem.model.enums.ImageType;
 import com.meem.repository.ImageMetadataRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
