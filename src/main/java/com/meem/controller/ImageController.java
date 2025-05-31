@@ -3,12 +3,14 @@ package com.meem.controller;
 import com.meem.model.dto.ImageGroupDto;
 import com.meem.model.dto.ImageMetadataDto;
 import com.meem.service.ImageService;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -35,15 +37,30 @@ public class ImageController {
     }
 
     @GetMapping("/list")
-    public ResponseEntity<List<ImageMetadataDto>> list() {
-        return ResponseEntity.ok(imageService.getAll());
+    public ResponseEntity<Map<String, Object>> listPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Page<ImageMetadataDto> pagedResult = imageService.getPaginated(page, size);
+
+        Map<String, Object> response = Map.of(
+                "images", pagedResult.getContent(),
+                "currentPage", pagedResult.getNumber(),
+                "totalItems", pagedResult.getTotalElements(),
+                "totalPages", pagedResult.getTotalPages()
+        );
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/grouped-images")
-    public ResponseEntity<Map<String, List<ImageGroupDto>>> getGroupedImages() {
-        List<ImageMetadataDto> allImages = imageService.getAll();
+    public ResponseEntity<Map<String, Object>> getGroupedImages(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Page<ImageMetadataDto> pageResult = imageService.getPaginated(page, size);
 
-        Map<String, List<ImageGroupDto>> grouped = allImages.stream()
+        Map<String, List<ImageGroupDto>> grouped = pageResult.getContent().stream()
                 .collect(Collectors.groupingBy(
                         img -> {
                             String type = img.getImageType();
@@ -54,9 +71,13 @@ public class ImageController {
                                 Collectors.toList()
                         )
                 ));
-        System.out.println("---------------------------------");
-        System.out.println(grouped);
 
-        return ResponseEntity.ok(grouped);
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", grouped);
+        response.put("currentPage", pageResult.getNumber());
+        response.put("totalPages", pageResult.getTotalPages());
+        response.put("totalItems", pageResult.getTotalElements());
+
+        return ResponseEntity.ok(response);
     }
 }

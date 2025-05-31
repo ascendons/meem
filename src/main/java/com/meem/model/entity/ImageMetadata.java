@@ -2,6 +2,8 @@ package com.meem.model.entity;
 
 import lombok.Data;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.IndexDirection;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
@@ -17,5 +19,6 @@ public class ImageMetadata {
     private String url;
     private String contentType;
     private long size;
+    @Indexed(direction = IndexDirection.DESCENDING)
     private LocalDateTime uploadedAt;
 }

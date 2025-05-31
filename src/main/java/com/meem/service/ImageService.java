@@ -4,6 +4,10 @@ import com.meem.model.dto.ImageMetadataDto;
 import com.meem.model.entity.ImageMetadata;
 import com.meem.repository.ImageMetadataRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -97,5 +101,20 @@ public class ImageService {
                         meta.getUploadedAt()
                 ))
                 .collect(Collectors.toList());
+    }
+
+    public Page<ImageMetadataDto> getPaginated(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "uploadedAt"));
+        Page<ImageMetadata> pageResult = repository.findAll(pageable);
+
+        return pageResult.map(meta -> new ImageMetadataDto(
+                meta.getFileName(),
+                meta.getImageType(),
+                meta.getImageTag(),
+                meta.getUrl(),
+                meta.getContentType(),
+                meta.getSize(),
+                meta.getUploadedAt()
+        ));
     }
 }
