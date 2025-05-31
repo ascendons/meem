@@ -1,0 +1,15 @@
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/image-db
+
+cloudflare:
+  r2:
+    bucket: ascendons
+    endpoint: https://e7319050725ca528da79919247f30c12.r2.cloudflarestorage.com
+    region: auto
+#    accessKey: R2_UfshvVQkvx-yhaX2mJPgU2ER4ANQOELLcuEe-
+    accessKey: 011aef7422a9cb06de98117c1d966017
+#    accessKey: A3jaikasIJQJZdJBXvbATiiS-IWwmLYxc-_a9XoW
+    secretKey: 086a5e274cfded9706108b4ce45241e15ce7f56968f856349c00e61f41c84f2d
+    cdnBaseUrl: https://ascendons.in
