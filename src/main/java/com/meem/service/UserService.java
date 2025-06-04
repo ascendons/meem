@@ -53,14 +53,8 @@ public class UserService {
         User existingUser = repository.findByEmail(email).isPresent() ? repository.findByEmail(email).get() : null;
 
         if (existingUser != null) {
-            // Check if logo already exists
-            if (existingUser.getLogoUrl() != null && !existingUser.getLogoUrl().isEmpty()) {
-                throw new IllegalStateException("Logo already set. Cannot change the logo.");
-            }
-
             // Update user
-            existingUser.setLogoFileName(sanitizedFileName);
-            existingUser.setLogoUrl(url);
+            existingUser.setUsername(userName);
             existingUser.setMobileNumber(mobileNumber);
             existingUser.setGender(gender);
             existingUser.setUpdatedAt(LocalDateTime.now());
