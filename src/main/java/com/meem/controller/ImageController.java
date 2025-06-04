@@ -27,9 +27,9 @@ public class ImageController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<ImageMetadataDto> upload(@RequestParam("file") MultipartFile file, @RequestParam("type") String type, @RequestParam("tag") String title) {
+    public ResponseEntity<ImageMetadataDto> upload(@RequestParam("file") MultipartFile file, @RequestParam("tag") String title) {
         try {
-            return ResponseEntity.ok(imageService.upload(file, type, title));
+            return ResponseEntity.ok(imageService.upload(file, title,"uploads"));
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(null);

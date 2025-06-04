@@ -38,7 +38,7 @@ public class ImageService {
         this.repository = repository;
     }
 
-    public ImageMetadataDto upload(MultipartFile file, String type, String title) throws IOException {
+    public ImageMetadataDto upload(MultipartFile file, String title, String folder) throws IOException {
         String originalFileName = file.getOriginalFilename();
 
         // 1. Sanitize the original file name
@@ -48,7 +48,7 @@ public class ImageService {
         String fileName = UUID.randomUUID() + "-" + sanitizedFileName;
 
         // 3. Upload to S3
-        String key = "uploads/" + fileName;
+        String key = folder +"/" + fileName;
         s3Client.putObject(PutObjectRequest.builder()
                         .bucket(bucket)
                         .key(key)
@@ -63,7 +63,7 @@ public class ImageService {
         // 5. Save metadata
         ImageMetadata meta = new ImageMetadata();
         meta.setFileName(sanitizedFileName);
-        meta.setImageType(type);
+        meta.setImageType("Self");
         meta.setImageTag(title);
         meta.setUrl(url);
         meta.setContentType(file.getContentType());
@@ -74,7 +74,7 @@ public class ImageService {
 
         return new ImageMetadataDto(
                 fileName,
-                type,
+                "Self",
                 title,
                 url,
                 file.getContentType(),
