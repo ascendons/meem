@@ -17,6 +17,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -82,6 +83,50 @@ public class ImageService {
                 meta.getUploadedAt()
         );
     }
+    public List<ImageMetadataDto> uploadImagesInternally(List<MultipartFile> files, String title, String folder, String type) throws IOException {
+        List<ImageMetadataDto> metadataList = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            String originalFileName = file.getOriginalFilename();
+            String sanitizedFileName = sanitizeFileName(originalFileName);
+            String fileName = UUID.randomUUID() + "-" + sanitizedFileName;
+            String key = folder + "/" + fileName;
+
+            s3Client.putObject(
+                    PutObjectRequest.builder()
+                            .bucket(bucket)
+                            .key(key)
+                            .contentType(file.getContentType())
+                            .build(),
+                    RequestBody.fromBytes(file.getBytes())
+            );
+
+            String url = cdnBaseUrl + "/" + key;
+
+            ImageMetadata meta = new ImageMetadata();
+            meta.setFileName(sanitizedFileName);
+            meta.setImageType(type);
+            meta.setImageTag(title);
+            meta.setUrl(url);
+            meta.setContentType(file.getContentType());
+            meta.setSize(file.getSize());
+            meta.setUploadedAt(LocalDateTime.now());
+
+            repository.save(meta);
+
+            metadataList.add(new ImageMetadataDto(
+                    fileName,
+                    type,
+                    title,
+                    url,
+                    file.getContentType(),
+                    file.getSize(),
+                    meta.getUploadedAt()
+            ));
+        }
+
+        return metadataList;
+    }
     private String sanitizeFileName(String originalFileName) {
         // Remove directory path if present
         originalFileName = Paths.get(originalFileName).getFileName().toString();
@@ -89,20 +134,6 @@ public class ImageService {
         // Replace all non-alphanumeric characters (except dot and hyphen) with underscores
         return originalFileName.replaceAll("[^a-zA-Z0-9.\\-]", "_");
     }
-    public List<ImageMetadataDto> getAll() {
-        return repository.findAll().stream()
-                .map(meta -> new ImageMetadataDto(
-                        meta.getFileName(),
-                        meta.getImageType(),
-                        meta.getImageTag(),
-                        meta.getUrl(),
-                        meta.getContentType(),
-                        meta.getSize(),
-                        meta.getUploadedAt()
-                ))
-                .collect(Collectors.toList());
-    }
-
     public Page<ImageMetadataDto> getPaginated(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "uploadedAt"));
         Page<ImageMetadata> pageResult = repository.findAll(pageable);

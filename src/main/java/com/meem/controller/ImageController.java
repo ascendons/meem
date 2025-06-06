@@ -36,6 +36,19 @@ public class ImageController {
         }
     }
 
+    @PostMapping("/uploadImagesInternally")
+    public ResponseEntity<List<ImageMetadataDto>> uploadImagesInternally(
+            @RequestParam("files") List<MultipartFile> files,
+            @RequestParam("tag") String title,
+            @RequestParam("type") String type) {
+        try {
+            List<ImageMetadataDto> result = imageService.uploadImagesInternally(files, title, "uploads", type);
+            return ResponseEntity.ok(result);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
     @GetMapping("/list")
     public ResponseEntity<Map<String, Object>> listPaginated(
             @RequestParam(defaultValue = "0") int page,
