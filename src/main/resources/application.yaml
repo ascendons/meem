@@ -1,10 +1,10 @@
 spring:
   data:
     mongodb:
-      uri: mongodb://localhost:27017/image-db
-#      uri: mongodb+srv://pankajthakur1874:pM4tuhemUypOLnRB@cluster0.4qx2f3e.mongodb.net/ultron
+#      uri: mongodb://localhost:27017/image-db
+      uri: mongodb+srv://pankajthakur1874:pM4tuhemUypOLnRB@cluster0.4qx2f3e.mongodb.net/ultron
 
-
+#
 cloudflare:
   r2:
     bucket: ascendons
