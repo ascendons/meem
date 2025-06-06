@@ -55,6 +55,7 @@ public class UserService {
         if (existingUser != null) {
             // Update user
             existingUser.setUsername(userName);
+            existingUser.setLogoUrl(url);
             existingUser.setMobileNumber(mobileNumber);
             existingUser.setGender(gender);
             existingUser.setUpdatedAt(LocalDateTime.now());
