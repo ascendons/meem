@@ -1,7 +1,7 @@
 package com.meem.model.entity;
 
+import jakarta.annotation.Nullable;
 import lombok.Data;
-import org.springframework.cglib.core.Local;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Document(collection = "user")
-
+@Nullable
 public class User {
     @Id
     private String id;

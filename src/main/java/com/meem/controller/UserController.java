@@ -38,4 +38,9 @@ public class UserController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    @PostMapping("/updateUser")
+    public User saveUser(@RequestBody User user) {
+        return userRepository.save(user);
+    }
 }
