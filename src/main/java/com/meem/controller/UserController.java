@@ -1,4 +1,5 @@
 package com.meem.controller;
+import com.meem.model.dto.LoginRequestDTO;
 import com.meem.model.dto.UserDto;
 import com.meem.model.entity.User;
 import com.meem.repository.UserRepository;
@@ -54,5 +55,10 @@ public class UserController {
     public ResponseEntity<Map<String, User>> saveUser(@RequestBody User user) {
         User savedUser = userRepository.save(user);
         return ResponseEntity.ok(Collections.singletonMap("user", savedUser));
+    }
+
+    @PostMapping("/login")
+    public UserDto login(@RequestBody LoginRequestDTO loginRequest) {
+        return userService.login(loginRequest.getEmail(), loginRequest.getPassword());
     }
 }

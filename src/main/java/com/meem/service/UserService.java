@@ -3,6 +3,7 @@ package com.meem.service;
 import com.meem.model.dto.UserDto;
 import com.meem.model.entity.User;
 import com.meem.repository.UserRepository;
+import com.meem.utils.PasswordUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -61,14 +62,14 @@ public class UserService {
             existingUser.setUpdatedAt(LocalDateTime.now());
 
             repository.save(existingUser);
+            UserDto userDto = new UserDto();
+            userDto.setUsername(userName);
+            userDto.setEmail(email);
+            userDto.setLogoUrl(url);
+            userDto.setMobileNumber(mobileNumber);
+            userDto.setGender(gender);
 
-            return new UserDto(
-                    userName,
-                    email,
-                    mobileNumber,
-                    url,
-                    sanitizedFileName
-            );
+            return userDto;
         }
 
         // New user
@@ -82,18 +83,35 @@ public class UserService {
         newUser.setUpdatedAt(LocalDateTime.now());
 
         repository.save(newUser);
+        UserDto userDto = new UserDto();
+        userDto.setUsername(userName);
+        userDto.setEmail(email);
+        userDto.setLogoUrl(url);
+        userDto.setMobileNumber(mobileNumber);
+        userDto.setGender(gender);
 
-        return new UserDto(
-                userName,
-                email,
-                mobileNumber,
-                url,
-                sanitizedFileName
-        );
+        return userDto;
     }
     private String sanitizeFileName(String originalFileName) {
         originalFileName = Paths.get(originalFileName).getFileName().toString();
         return originalFileName.replaceAll("[^a-zA-Z0-9.\\-]", "_");
+    }
+
+    public UserDto login(String email, String password) {
+        User user = repository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+
+        if (!PasswordUtil.verifyPassword(password, user.getPassword())) {
+            throw new RuntimeException("Invalid email or password");
+        }
+        UserDto userDto = new UserDto();
+        userDto.setUsername(user.getUsername());
+        userDto.setEmail(user.getEmail());
+        userDto.setLogoUrl(user.getLogoUrl());
+        userDto.setGender(user.getGender());
+        userDto.setMobileNumber(user.getMobileNumber());
+
+        return userDto;
     }
 
 }

@@ -17,6 +17,7 @@ public class User {
     private String username;
     @Indexed(unique = true)
     private String email;
+    private String password;
     private String mobileNumber;
     private String logoUrl;
     private String logoFileName;

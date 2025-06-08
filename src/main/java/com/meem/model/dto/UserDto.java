@@ -13,5 +13,6 @@ public class UserDto {
     private String mobileNumber;
     private String logoUrl;
     private String logoFileName;
+    private String gender;
 
 }

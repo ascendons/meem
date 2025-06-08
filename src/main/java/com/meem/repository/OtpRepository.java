@@ -1,10 +1,10 @@
 package com.meem.repository;
 
 import com.meem.model.entity.Otp;
-import com.meem.model.entity.User;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-public interface OtpRepository extends MongoRepository<Otp, Integer> {
+import java.util.Optional;
 
-    Otp getOtpByEmail(String email);
+public interface OtpRepository extends MongoRepository<Otp, Long> {
+    Optional<Otp> findByEmail(String email);
 }
