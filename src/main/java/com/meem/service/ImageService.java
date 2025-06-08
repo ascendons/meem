@@ -58,6 +58,7 @@ public class ImageService {
 
     public List<ImageMetadataDto> uploadImagesInternally(List<MultipartFile> files, String title, String folder, String type) throws IOException {
         clearImageListCache();
+        clearGroupedImageCache();
         logger.info("Uploading {} images internally with tag='{}', type='{}'", files.size(), title, type);
 
         List<ImageMetadataDto> result = new ArrayList<>();
@@ -209,6 +210,10 @@ public class ImageService {
 
     @CacheEvict(value = "imageList", allEntries = true)
     public void clearImageListCache() {
+        logger.info("Evicting all entries from 'imageList' cache");
+    }
+    @CacheEvict(value = "groupedImages", allEntries = true)
+    public void clearGroupedImageCache() {
         logger.info("Evicting all entries from 'imageList' cache");
     }
 }
