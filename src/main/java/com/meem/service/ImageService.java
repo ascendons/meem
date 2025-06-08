@@ -4,12 +4,19 @@ import com.meem.model.dto.ImageGroupDto;
 import com.meem.model.dto.ImageMetadataDto;
 import com.meem.model.entity.ImageMetadata;
 import com.meem.repository.ImageMetadataRepository;
+import com.mongodb.BasicDBObject;
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -35,10 +42,12 @@ public class ImageService {
 
     private final S3Client s3Client;
     private final ImageMetadataRepository repository;
+    private final MongoTemplate mongoTemplate;
 
-    public ImageService(S3Client s3Client, ImageMetadataRepository repository) {
+    public ImageService(S3Client s3Client, ImageMetadataRepository repository, MongoTemplate mongoTemplate) {
         this.s3Client = s3Client;
         this.repository = repository;
+        this.mongoTemplate = mongoTemplate;
     }
 
     public ImageMetadataDto upload(MultipartFile file, String title, String folder) throws IOException {
@@ -132,26 +141,69 @@ public class ImageService {
         return repository.findAll(pageable).map(meta -> toDto(meta, meta.getFileName()));
     }
 
-    @Cacheable(value = "groupedImages", key = "#page + '-' + #size")
-    public Map<String, Object> getGroupedPaginated(int page, int size) {
-        logger.info("Fetching grouped paginated images: page={}, size={}", page, size);
-        Page<ImageMetadataDto> pageResult = getPaginated(page, size);
+    @Cacheable(value = "groupedImages", key = "'groupedImages-' + #page + '-' + #size")
+    public Map<String, Object> getGroupedPaginatedImages(int page, int size) {
+        logger.info("Fetching grouped paginated images via aggregation: page={}, size={}", page, size);
 
-        Map<String, List<ImageGroupDto>> grouped = pageResult.getContent().stream()
-                .collect(Collectors.groupingBy(
-                        img -> Optional.ofNullable(img.getImageType()).filter(s -> !s.trim().isEmpty()).orElse("Others"),
-                        Collectors.mapping(
-                                img -> new ImageGroupDto(img.getImageTag(), img.getUrl()),
-                                Collectors.toList()
-                        )
-                ));
+        // Add a projection to normalize null or blank imageType
+        ProjectionOperation projectWithDefaultType = Aggregation.project("imageTag", "url", "imageType")
+                .and(
+                        ConditionalOperators.ifNull("imageType").then("Others")
+                ).as("imageType");
 
-        logger.debug("Grouped {} image types from page {}", grouped.size(), page);
+        // Group by imageType and collect imageTag + url
+        GroupOperation groupByImageType = Aggregation.group("imageType")
+                .push(
+                        new BasicDBObject("imageTag", "$imageTag")
+                                .append("url", "$url")
+                ).as("images");
+
+        SortOperation sortByType = Aggregation.sort(Sort.by(Sort.Direction.ASC, "_id"));
+
+        SkipOperation skip = Aggregation.skip((long) page * size);
+        LimitOperation limit = Aggregation.limit(size);
+
+        Aggregation aggregation = Aggregation.newAggregation(
+                projectWithDefaultType,
+                groupByImageType,
+                sortByType,
+                skip,
+                limit
+        );
+
+        AggregationResults<Document> results = mongoTemplate.aggregate(aggregation, "images", Document.class);
+        List<Document> documents = results.getMappedResults();
+
+        Map<String, List<ImageGroupDto>> groupedData = new LinkedHashMap<>();
+        for (Document doc : documents) {
+            String imageType = doc.getString("_id");
+            List<Document> images = (List<Document>) doc.get("images");
+
+            List<ImageGroupDto> imageGroup = images.stream()
+                    .map(img -> new ImageGroupDto(img.getString("imageTag"), img.getString("url")))
+                    .collect(Collectors.toList());
+
+            groupedData.put(imageType, imageGroup);
+        }
+
+        // Efficient count aggregation
+        Aggregation countAggregation = Aggregation.newAggregation(
+                projectWithDefaultType,
+                groupByImageType,
+                Aggregation.count().as("totalGroups")
+        );
+
+        AggregationResults<Document> countResults = mongoTemplate.aggregate(countAggregation, "images", Document.class);
+        countResults.getUniqueMappedResult();
+        long totalGroups = countResults.getUniqueMappedResult().getInteger("totalGroups");
+
+        int totalPages = (int) Math.ceil((double) totalGroups / size);
+
         return Map.of(
-                "data", grouped,
-                "currentPage", pageResult.getNumber(),
-                "totalPages", pageResult.getTotalPages(),
-                "totalItems", pageResult.getTotalElements()
+                "data", groupedData,
+                "currentPage", page,
+                "totalPages", totalPages,
+                "totalItems", totalGroups
         );
     }
 

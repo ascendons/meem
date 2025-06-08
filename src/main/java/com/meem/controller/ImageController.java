@@ -69,7 +69,7 @@ public class ImageController {
             @RequestParam(defaultValue = "10") int size) {
 
         logger.info("Fetching grouped images: page={}, size={}", page, size);
-        return ResponseEntity.ok(imageService.getGroupedPaginated(page, size));
+        return ResponseEntity.ok(imageService.getGroupedPaginatedImages(page, size));
     }
 
     private <T> ResponseEntity<T> handleImageUpload(ImageUploadOperation<T> operation, String description) {
