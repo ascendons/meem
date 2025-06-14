@@ -10,9 +10,11 @@ import com.meem.service.MailService;
 import com.meem.service.OtpService;
 import com.meem.utils.PasswordUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -56,7 +58,7 @@ public class OtpServiceImpl implements OtpService {
                 case "REGISTER" -> "Welcome to Tonikra!";
                 default -> "Tonikra: Your One-Time Password (OTP)";
             };
-            String template = Files.readString(Paths.get("src/main/resources/templates/template.html"));
+            String template = loadTemplateFromClasspath("templates/template.html");
             boolean isForgotPassword = "FORGOT_PASSWORD".equalsIgnoreCase(otpDTO.getFlowType());
             String htmlBody = getHtmlEmailBody(template, otpCode, otpDTO.getFullName(), isForgotPassword);
             mailService.sendHtmlEmail(otpDTO.getEmail(), subject, htmlBody);
@@ -72,6 +74,11 @@ public class OtpServiceImpl implements OtpService {
 
         }
 
+    }
+    public String loadTemplateFromClasspath(String path) throws IOException {
+        ClassPathResource resource = new ClassPathResource(path);
+        byte[] bytes = resource.getInputStream().readAllBytes();
+        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     public String getHtmlEmailBody(String template, String otpCode, String fullName, boolean isForgotPassword) {
