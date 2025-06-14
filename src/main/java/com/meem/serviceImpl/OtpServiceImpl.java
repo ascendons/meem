@@ -9,6 +9,7 @@ import com.meem.repository.UserRepository;
 import com.meem.service.MailService;
 import com.meem.service.OtpService;
 import com.meem.utils.PasswordUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -21,6 +22,7 @@ import java.util.Optional;
 import java.util.Random;
 
 @Service
+@Slf4j
 public class OtpServiceImpl implements OtpService {
 
     private final OtpRepository otpRepository;
@@ -60,9 +62,11 @@ public class OtpServiceImpl implements OtpService {
             mailService.sendHtmlEmail(otpDTO.getEmail(), subject, htmlBody);
             Map<String, String> response = new HashMap<>();
             response.put("otp", "OTP sent successfully");
+            log.info("OTP sent to {}", otpDTO.getEmail());
             return response;
         } catch (IOException e) {
             Map<String, String> response = new HashMap<>();
+            log.error("Failed to send OTP", e);
             response.put("otp", "OTP failed to send");
             return response;
 
@@ -86,10 +90,12 @@ public class OtpServiceImpl implements OtpService {
                 .orElseThrow(() -> new RuntimeException("OTP not found for the provided email"));
 
         if (!storedOtp.getOtp().equals(otpDTO.getOtp())) {
+            log.error("Invalid OTP for email {}", otpDTO.getEmail());
             throw new RuntimeException("Invalid OTP");
         }
 
         if (storedOtp.getExpiryTime().isBefore(LocalDateTime.now())) {
+            log.error("OTP has expired for email {}", otpDTO.getEmail());
             throw new RuntimeException("OTP has expired");
         }
 
@@ -97,6 +103,7 @@ public class OtpServiceImpl implements OtpService {
 
         if ("REGISTER".equalsIgnoreCase(otpDTO.getFlowType())) {
             if (optionalUser.isPresent()) {
+                log.error("User already exists for email {}", otpDTO.getEmail());
                 throw new RuntimeException("User already exists. Please login or reset password.");
             }
 
@@ -105,9 +112,11 @@ public class OtpServiceImpl implements OtpService {
             newUser.setPassword(storedOtp.getPassword());
             newUser.setUsername(storedOtp.getUsername());
             userRepository.save(newUser);
+            log.info("User registered successfully for email {}", otpDTO.getEmail());
 
         } else if ("FORGOT_PASSWORD".equalsIgnoreCase(otpDTO.getFlowType())) {
             if (optionalUser.isEmpty()) {
+                log.error("User not found for email {}", otpDTO.getEmail());
                 throw new RuntimeException("User not found. Please register.");
             }
 
@@ -115,6 +124,7 @@ public class OtpServiceImpl implements OtpService {
             existingUser.setPassword(storedOtp.getPassword()); // Already encrypted
             userRepository.save(existingUser);
         } else {
+            log.error("Invalid flow type {}", otpDTO.getFlowType());
             throw new RuntimeException("Invalid flow type.");
         }
 
@@ -122,6 +132,7 @@ public class OtpServiceImpl implements OtpService {
         jwt.setToken("mock-jwt-token-for-" + otpDTO.getEmail());
         Map<String, String> response = new HashMap<>();
         response.put("message", "Verification successful");
+        log.info("Verification successful for email {}", otpDTO.getEmail());
         return response;
     }
 }
