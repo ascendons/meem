@@ -11,6 +11,9 @@ import com.meem.service.OtpService;
 import com.meem.utils.PasswordUtil;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,21 +48,36 @@ public class OtpServiceImpl implements OtpService {
         otp.setExpiryTime(LocalDateTime.now().plusMinutes(EXPIRY_MINUTES));
         otpRepository.save(otp);
 
-        String subject;
-        String body;
+        try {
+            String subject = switch (otpDTO.getFlowType().toUpperCase()) {
+                case "FORGOT_PASSWORD" -> "Tonikra: Reset Your Password";
+                case "REGISTER" -> "Welcome to Tonikra!";
+                default -> "Tonikra: Your One-Time Password (OTP)";
+            };
+            String template = Files.readString(Paths.get("src/main/resources/templates/template.html"));
+            boolean isForgotPassword = "FORGOT_PASSWORD".equalsIgnoreCase(otpDTO.getFlowType());
+            String htmlBody = getHtmlEmailBody(template, otpCode, otpDTO.getFullName(), isForgotPassword);
+            mailService.sendHtmlEmail(otpDTO.getEmail(), subject, htmlBody);
+            Map<String, String> response = new HashMap<>();
+            response.put("otp", "OTP sent successfully");
+            return response;
+        } catch (IOException e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("otp", "OTP failed to send");
+            return response;
 
-        if ("FORGOT_PASSWORD".equalsIgnoreCase(otpDTO.getFlowType())) {
-            subject = "Meem: Reset Your Password";
-            body = "You're trying to reset your password. Use this OTP: " + otpCode;
-        } else {
-            subject = "Welcome to Meem!";
-            body = "Thanks for registering with Meem. This is your OTP: " + otpCode;
         }
 
-        mailService.sendEmail(otpDTO.getEmail(), subject, body);
-        Map<String, String> response = new HashMap<>();
-        response.put("otp", "OTP sent successfully");
-        return response;
+    }
+
+    public String getHtmlEmailBody(String template, String otpCode, String fullName, boolean isForgotPassword) {
+        return template
+                .replace("{{otpCode}}", otpCode)
+                .replace("{{fullName}}", fullName)
+                .replace("{{#if isForgotPassword}}", isForgotPassword ? "" : "<!--")
+                .replace("{{/if}}", isForgotPassword ? "" : "-->")
+                .replace("{{else}}", isForgotPassword ? "<!--" : "")
+                ;
     }
 
     @Override
